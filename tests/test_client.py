@@ -3,7 +3,6 @@ from watttime_client.client import WattTimeAPI
 from datetime import datetime, timedelta
 import pandas as pd
 import pytz
-import csv
 import os
 
 
@@ -199,42 +198,3 @@ class TestAPIClient(TestCase):
         naive_start = self.caiso_start.replace(tzinfo=None)
         self.assertRaises(ValueError, self.impacter.get_impact_between,
                           naive_start, self.caiso_end, interval_minutes=5, ba='CAISO', fill=False)
-
-
-class TestAPIClientExport(TestCase):
-    def setUp(self):
-        WATTTIME_API_TOKEN = os.environ.get('WATTTIME_API_TOKEN')
-        self.impacter = WattTimeAPI(token=WATTTIME_API_TOKEN)
-        self.start_at = datetime(2014, 9, 2, 23, tzinfo=pytz.utc)
-        self.end_at = datetime(2014, 9, 3, 2, tzinfo=pytz.utc)
-        self.n_expected_5m = (self.end_at - self.start_at).total_seconds() / 300 + 1
-        self.expected_filename = './PJM_RT5M_%s_%s.csv' % (self.start_at.isoformat(), self.end_at.isoformat())
-
-    def tearDown(self):
-        os.remove(self.expected_filename)
-
-    def test_csv_filename(self):
-        filename = self.impacter.to_csv(self.start_at, self.end_at, ba='PJM', market='RT5M')
-        self.assertEqual(filename, self.expected_filename)
-
-    def test_csv_header(self):
-        filename = self.impacter.to_csv(self.start_at, self.end_at, ba='PJM', market='RT5M')
-        reader = csv.reader(open(filename))
-        self.assertEqual(['timestamp', 'marginal_carbon_lb/MWh'], reader.next())
-
-    def test_csv_data(self):
-        # get csv
-        filename = self.impacter.to_csv(self.start_at, self.end_at, ba='PJM', market='RT5M')
-        reader = csv.reader(open(filename))
-
-        # skip header
-        reader.next()
-
-        # test data
-        n_lines = 0
-        for row in reader:
-            n_lines += 1
-            self.assertEqual(len(row), 2)
-            self.assertIn('2014-09', row[0])
-            self.assertIn(row[1], ['1691.0', '1970.0'])
-        self.assertEqual(n_lines, self.n_expected_5m)

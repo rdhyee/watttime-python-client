@@ -2,8 +2,6 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-import csv
-import os.path
 
 
 class LocMemCache(dict):
@@ -65,33 +63,6 @@ class WattTimeAPI(object):
 
         # return
         return ret_times, ret_values
-
-    def to_csv(self, start_at, end_at, ba, market,
-               path='.', **kwargs):
-        """
-        Write marginal data to csv.
-        kwargs are passed on to `fetch`.
-        Returns filename data was written to.
-        """
-        # set up filename
-        base = '_'.join([ba, market,
-                         start_at.isoformat(),
-                         end_at.isoformat()])
-        filename = os.path.join(path, base) + '.csv'
-
-        # set up writer
-        writer = csv.writer(open(filename, 'w'))
-
-        # write header
-        writer.writerow(['timestamp', 'marginal_carbon_lb/MWh'])
-
-        # write data
-        times, values = self.fetch(start_at, end_at, ba, market, **kwargs)
-        for row in zip(times, values):
-            writer.writerow(row)
-
-        # return
-        return filename
 
     def get_impact_at(self, ts, ba, market='RT5M'):
         """
