@@ -1,0 +1,6 @@
+pandas
+requests
+Sphinx
+pytest
+pytest-cov
+flake8
