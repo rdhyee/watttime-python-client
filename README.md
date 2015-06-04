@@ -1,3 +1,2 @@
-# watttime-python-sdk
-Python SDK for the WattTime API
-
+# watttime-python-client
+Python client for the WattTime API: http://api.watttime.org/
