@@ -4,3 +4,4 @@ Sphinx
 pytest
 pytest-cov
 flake8
+wheel

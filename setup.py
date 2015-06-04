@@ -10,8 +10,8 @@ name = 'watttime_client'
 package = 'watttime_client'
 description = 'Python client library for the WattTime API'
 url = 'https://github.com/WattTime/watttime-python-client'
-author = 'Anna Schneider'
-author_email = 'anna@WattTime.org'
+author = 'WattTime'
+author_email = 'dev@WattTime.org'
 license = 'Apache'
 
 
