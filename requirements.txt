@@ -1,6 +1,7 @@
 pandas
 requests
 Sphinx
+sphinx-autobuild
 pytest
 pytest-cov
 flake8
