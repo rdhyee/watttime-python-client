@@ -8,8 +8,11 @@ import os
 
 class TestAPIClient(TestCase):
     def setUp(self):
+        # set up client
         WATTTIME_API_TOKEN = os.environ.get('WATTTIME_API_TOKEN')
         self.impacter = WattTimeAPI(token=WATTTIME_API_TOKEN)
+
+        # set up times
         self.start_at = datetime(2014, 9, 2, 23, tzinfo=pytz.utc)
         self.end_at = datetime(2014, 9, 3, 2, tzinfo=pytz.utc)
         self.early_date = datetime(1914, 9, 2, 23, tzinfo=pytz.utc)

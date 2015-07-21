@@ -2,6 +2,10 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class LocMemCache(dict):
@@ -22,8 +26,10 @@ class WattTimeAPI(object):
         try:
             from django.core.cache import caches
             self.cache = caches['default']
+            logger.debug('Using Django default cache for WattTime API client.')
         except ImportError:
             self.cache = LocMemCache()
+            logger.warn('Django cache unavailable to WattTime API client, falling back to local memory cache.')
 
     def fetch(self, start_at, end_at, ba, market, **kwargs):
         """
@@ -44,9 +50,12 @@ class WattTimeAPI(object):
                               params=params, headers=self.auth_header)
         data = result.json()['results']
 
+        n_pages = 1
         while result.json()['next']:
             result = requests.get(result.json()['next'], headers=self.auth_header)
             data += result.json()['results']
+            n_pages += 1
+        logger.debug('Made %d requests for params %s' % (n_pages, params))
 
         # pull out data
         sorted_data = sorted(data, key=lambda d: d['timestamp'])
