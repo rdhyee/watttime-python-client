@@ -127,15 +127,10 @@ class WattTimeAPI(object):
         dtidx = pd.date_range(utc_start, utc_end, freq='%dMin' % interval_minutes)
 
         # get cached value for every timestamp
-        values = dtidx.map(lambda ts: self.best_cached_value(ts, ba, market)[0])
+        values = dtidx.map(lambda ts: self.get_impact_at(ts, ba, market))
 
         # set up series
         series = pd.Series(values, index=dtidx)
-
-        # for uncached values, fill with fetch
-        for ts, value in series.where(series.isnull()).iteritems():
-            series.at[ts] = self.get_impact_at(ts, ba, market)
-            logger.debug('%s %s' % (ts, series.at[ts]))
 
         # fill any remaining null values
         if fill:
