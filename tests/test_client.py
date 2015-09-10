@@ -138,8 +138,7 @@ class TestAPIClient(TestCase):
         value_pre = self.impacter.get_impact_at(off_hr_ts, ba='PJM', market='RT5M')
 
         # overwrite cache with just the earlier timestamp and fake value
-        fake_cached_data = {on_hr_ts: -1000}
-        self.impacter.cache.set(on_hr_key, fake_cached_data)
+        self.impacter.insert_to_cache(on_hr_ts, 'PJM', 'RT5M', -1000)
 
         # get again, should be correct value
         value_post = self.impacter.get_impact_at(off_hr_ts, ba='PJM', market='RT5M')
@@ -150,6 +149,7 @@ class TestAPIClient(TestCase):
                                                   interval_minutes=5, ba='PJM')
         times, impacts = self.impacter.fetch(self.start_at, self.end_at,
                                              ba='PJM', market='RT5M')
+
         for i in range(len(times)):
             self.assertEqual(series.at[times[i]], impacts[i])
 
