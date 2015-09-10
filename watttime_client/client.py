@@ -2,6 +2,10 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class LocMemCache(dict):
@@ -22,8 +26,10 @@ class WattTimeAPI(object):
         try:
             from django.core.cache import caches
             self.cache = caches['default']
+            logger.debug('Using Django default cache for WattTime API client.')
         except ImportError:
             self.cache = LocMemCache()
+            logger.warn('Django cache unavailable to WattTime API client, falling back to local memory cache.')
 
     def fetch(self, start_at, end_at, ba, market, **kwargs):
         """
@@ -40,13 +46,16 @@ class WattTimeAPI(object):
         params.update(kwargs)
 
         # make request
-        result = requests.get('http://api.watttime.org/api/v1/marginal/',
+        result = requests.get('https://api.watttime.org/api/v1/marginal/',
                               params=params, headers=self.auth_header)
         data = result.json()['results']
 
+        n_pages = 1
         while result.json()['next']:
             result = requests.get(result.json()['next'], headers=self.auth_header)
             data += result.json()['results']
+            n_pages += 1
+        logger.debug('Made %d requests and got %d datapoints for params %s' % (n_pages, len(data), params))
 
         # pull out data
         sorted_data = sorted(data, key=lambda d: d['timestamp'])
@@ -70,15 +79,20 @@ class WattTimeAPI(object):
         using the RT5M market by default.
         """
         # query cache
-        cached_data = self.get_from_cache(ts, ba, market)
+        best_cached_time, best_cached_value = self.best_cached_value(ts, ba, market)
 
-        # get sorted times and values from cache or fetcher
-        times, values = None, None
-        if not cached_data or max(cached_data.keys()) < ts:
-            times, values = self.fetch(ts - timedelta(hours=1), ts + timedelta(hours=1), ba, market)
-        else:
-            times = sorted(cached_data.keys())
-            values = [cached_data[d] for d in times]
+        # if got good data, return
+        if best_cached_time:
+            lag_time = ts - best_cached_time
+            if lag_time < timedelta(hours=1) and market == 'DAHR':
+                # acceptable lag is 1 hr for hourly data
+                return best_cached_value
+            elif lag_time < timedelta(minutes=15):
+                # acceptable lag is 15 min otherwise
+                return best_cached_value
+
+        # if got here, no good data in cache, so fetch it
+        times, values = self.fetch(ts - timedelta(hours=4), ts + timedelta(hours=4), ba, market)
 
         # best value is latest time before or equal to ts
         best_value = None
@@ -112,11 +126,13 @@ class WattTimeAPI(object):
         # set up datetime index with correct interval
         dtidx = pd.date_range(utc_start, utc_end, freq='%dMin' % interval_minutes)
 
-        # get value for every timestamp
+        # get cached value for every timestamp
         values = dtidx.map(lambda ts: self.get_impact_at(ts, ba, market))
 
-        # set up and fill series
+        # set up series
         series = pd.Series(values, index=dtidx)
+
+        # fill any remaining null values
         if fill:
             series = series.ffill()
 
@@ -156,3 +172,31 @@ class WattTimeAPI(object):
 
         # return
         return cached_data
+
+    def best_cached_value(self, ts, ba, market):
+        """
+        Returns the best cached time/value pair for the arguments,
+        or (None, None) if no good value found in cache.
+        """
+        # query cache
+        cached_data = self.get_from_cache(ts, ba, market)
+
+        # if no cache, no best value
+        if not cached_data:
+            return (None, None)
+
+        # sort times and values
+        times = sorted(cached_data.keys())
+        values = [cached_data[d] for d in times]
+
+        # best value is latest time before or equal to ts
+        best_time, best_value = None, None
+        for d, v in zip(times, values):
+            if d <= ts:
+                best_time = d
+                best_value = v
+            else:
+                break
+
+        # return
+        return best_time, best_value

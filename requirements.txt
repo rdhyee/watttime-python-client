@@ -4,5 +4,6 @@ Sphinx
 sphinx-autobuild
 pytest
 pytest-cov
+pytest-capturelog
 flake8
 wheel
