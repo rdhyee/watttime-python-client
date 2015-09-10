@@ -46,7 +46,7 @@ class WattTimeAPI(object):
         params.update(kwargs)
 
         # make request
-        result = requests.get('http://api.watttime.org/api/v1/marginal/',
+        result = requests.get('https://api.watttime.org/api/v1/marginal/',
                               params=params, headers=self.auth_header)
         data = result.json()['results']
 
@@ -87,12 +87,12 @@ class WattTimeAPI(object):
             if lag_time < timedelta(hours=1) and market == 'DAHR':
                 # acceptable lag is 1 hr for hourly data
                 return best_cached_value
-            elif lag_time < timedelta(minutes=5):
-                # acceptablelag is 5 min otherwise
+            elif lag_time < timedelta(minutes=15):
+                # acceptable lag is 15 min otherwise
                 return best_cached_value
 
         # if got here, no good data in cache, so fetch it
-        times, values = self.fetch(ts - timedelta(hours=1), ts + timedelta(hours=1), ba, market)
+        times, values = self.fetch(ts - timedelta(hours=4), ts + timedelta(hours=4), ba, market)
 
         # best value is latest time before or equal to ts
         best_value = None
@@ -127,7 +127,7 @@ class WattTimeAPI(object):
         dtidx = pd.date_range(utc_start, utc_end, freq='%dMin' % interval_minutes)
 
         # get cached value for every timestamp
-        values = dtidx.map(lambda ts: self.best_cached_value(ts, ba, market)[1])
+        values = dtidx.map(lambda ts: self.best_cached_value(ts, ba, market)[0])
 
         # set up series
         series = pd.Series(values, index=dtidx)
@@ -198,7 +198,7 @@ class WattTimeAPI(object):
         best_time, best_value = None, None
         for d, v in zip(times, values):
             if d <= ts:
-                best_time = ts
+                best_time = d
                 best_value = v
             else:
                 break

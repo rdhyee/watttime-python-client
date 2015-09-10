@@ -150,6 +150,10 @@ class TestAPIClient(TestCase):
         times, impacts = self.impacter.fetch(self.start_at, self.end_at,
                                              ba='PJM', market='RT5M')
 
+        # same amount of data
+        self.assertEqual(len(series), len(impacts))
+
+        # same values
         for i in range(len(times)):
             self.assertEqual(series.at[times[i]], impacts[i])
 
