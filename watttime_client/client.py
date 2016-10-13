@@ -27,9 +27,10 @@ class WattTimeAPI(object):
             from django.core.cache import caches
             self.cache = caches['default']
             logger.debug('Using Django default cache for WattTime API client.')
-        except ImportError:
+        except Exception:
             self.cache = LocMemCache()
             logger.warn('Django cache unavailable to WattTime API client, falling back to local memory cache.')
+
 
     def fetch(self, start_at, end_at, ba, market, **kwargs):
         """
